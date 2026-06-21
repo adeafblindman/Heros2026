@@ -98,15 +98,23 @@ re-serve the JSON with permissive CORS headers, and point `?api=` at that instea
 
 ## Custom font
 
-By default the ticker loads **FS Sinclair** directly from:
+By default the ticker loads **FS Sinclair** from jsDelivr's GitHub CDN mirror:
 ```
-https://github.com/adeafblindman/Heros2026/raw/refs/heads/main/FSSinclair-Medium.otf
+https://cdn.jsdelivr.net/gh/adeafblindman/Heros2026@main/FSSinclair-Medium.otf
 ```
-via `@font-face` in the page's `<style>` block. `raw.githubusercontent.com`/GitHub's raw
-file host generally serves permissive CORS headers for font files, so this should load
-fine cross-origin. If it ever doesn't render (falls back to the default sans-serif), check
-the browser console for a font-loading error — most likely cause is the file path/branch
-changing in that repo. You can always override the font entirely with `?font=`.
+via `@font-face` in the page's `<style>` block. This uses jsDelivr rather than GitHub's own
+raw file host (`github.com/.../raw/...`) because GitHub serves an empty
+`Access-Control-Allow-Origin` header on raw files, which browsers treat as a hard CORS
+block — the font would silently fail to load. jsDelivr mirrors public GitHub repos and adds
+proper CORS headers, so it works.
+
+If you update `FSSinclair-Medium.otf` in the repo, jsDelivr may keep serving a cached old
+version for a while (their CDN caches by branch/tag). To force the new version sooner, you
+can pin a specific commit hash instead of `@main`, e.g.
+`https://cdn.jsdelivr.net/gh/adeafblindman/Heros2026@<commit-sha>/FSSinclair-Medium.otf`, or
+request a purge at https://www.jsdelivr.com/tools/purge.
+
+You can always override the font entirely with `?font=` if needed.
 
 ## Data field mapping
 
