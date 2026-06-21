@@ -113,14 +113,6 @@ encoded as `%2B`:
 https://adeafblindman.github.io/Heros2026/?panels=teams&team=https://tiltify.com/%2B2nd-liberation-battalion/profile
 ```
 
-## Notes on CORS
-
-This widget fetches the API directly from the browser. If `hd2clans.com` does not send
-`Access-Control-Allow-Origin` headers permitting your GitHub Pages origin, the fetch will
-fail silently in the browser console (you'll see a "Unable to load data" message on first
-load). If that happens, you'll need a small proxy (e.g. a Cloudflare Worker or similar) to
-re-serve the JSON with permissive CORS headers, and point `?api=` at that instead.
-
 ## Custom font
 
 By default the ticker loads **FS Sinclair** from jsDelivr's GitHub CDN mirror:
@@ -132,12 +124,6 @@ raw file host (`github.com/.../raw/...`) because GitHub serves an empty
 `Access-Control-Allow-Origin` header on raw files, which browsers treat as a hard CORS
 block — the font would silently fail to load. jsDelivr mirrors public GitHub repos and adds
 proper CORS headers, so it works.
-
-If you update `FSSinclair-Medium.otf` in the repo, jsDelivr may keep serving a cached old
-version for a while (their CDN caches by branch/tag). To force the new version sooner, you
-can pin a specific commit hash instead of `@main`, e.g.
-`https://cdn.jsdelivr.net/gh/adeafblindman/Heros2026@<commit-sha>/FSSinclair-Medium.otf`, or
-request a purge at https://www.jsdelivr.com/tools/purge.
 
 You can always override the font entirely with `?font=` if needed.
 
