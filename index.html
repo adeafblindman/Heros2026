@@ -507,8 +507,9 @@
         const url = normalizeUrlForMatch(c.campaign_url);
         const slug = normalizeUrlForMatch(c.campaign_slug);
         return (url && url === target) || (slug && slug === target) ||
-               (url && url.endsWith('/' + target)) || // in case target is just a slug
-               (target.endsWith('/' + slug) && slug); // in case target has extra path
+               (url && url.endsWith('/' + target)) ||   // in case target is just a slug
+               (target.endsWith('/' + slug) && slug) ||  // in case target has extra path (vs slug)
+               (target.endsWith('/' + url) && url);      // in case target has extra path (vs url)
       });
     }
 
