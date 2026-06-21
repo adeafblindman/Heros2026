@@ -8,9 +8,8 @@ to the next panel.
 
 ## Setup
 
-1. Push `index.html` to a GitHub repo, enable **GitHub Pages** (Settings → Pages → branch `main`, root).
-2. Your ticker URL will be `https://<username>.github.io/<repo>/`.
-3. In OBS: **Sources → Add → Browser Source**, paste the URL (with any params you want, see below),
+
+1. In OBS: **Sources → Add → Browser Source**, paste the URL (with any params you want, see below),
    set width/height to match your scene, check **"Shutdown source when not visible"** off,
    and you're done — background is transparent by default.
 
@@ -70,31 +69,23 @@ to sit flush along one edge of the canvas instead of vertically centered.
 
 Default look, rotates every 8s, bar pinned to the bottom:
 ```
-https://you.github.io/charity-ticker/
+https://adeafblindman.github.io/Heros2026/
 ```
 
 Bar pinned to the top instead:
 ```
-https://you.github.io/charity-ticker/?position=top
+https://adeafblindman.github.io/Heros2026/?position=top
 ```
 
 Custom brand colors, 10s rotation, top 3 only, fixed 900x180 box for OBS:
 ```
-https://you.github.io/charity-ticker/?bar=ff4444&accent=ffd700&rotate=10&maxitems=3&w=900&h=180
+https://adeafblindman.github.io/Heros2026/?bar=ff4444&accent=ffd700&rotate=10&maxitems=3&w=900&h=180
 ```
 
 Only show the total + top donors, custom title, centered vertically:
 ```
-https://you.github.io/charity-ticker/?panels=total,donors&title_total=Save%20the%20Children%20Goal&position=center
+https://adeafblindman.github.io/Heros2026/?panels=total,donors&title_total=Save%20the%20Children%20Goal&position=center
 ```
-
-## Notes on CORS
-
-This widget fetches the API directly from the browser. If `hd2clans.com` does not send
-`Access-Control-Allow-Origin` headers permitting your GitHub Pages origin, the fetch will
-fail silently in the browser console (you'll see a "Unable to load data" message on first
-load). If that happens, you'll need a small proxy (e.g. a Cloudflare Worker or similar) to
-re-serve the JSON with permissive CORS headers, and point `?api=` at that instead.
 
 ## Custom font
 
@@ -107,12 +98,6 @@ raw file host (`github.com/.../raw/...`) because GitHub serves an empty
 `Access-Control-Allow-Origin` header on raw files, which browsers treat as a hard CORS
 block — the font would silently fail to load. jsDelivr mirrors public GitHub repos and adds
 proper CORS headers, so it works.
-
-If you update `FSSinclair-Medium.otf` in the repo, jsDelivr may keep serving a cached old
-version for a while (their CDN caches by branch/tag). To force the new version sooner, you
-can pin a specific commit hash instead of `@main`, e.g.
-`https://cdn.jsdelivr.net/gh/adeafblindman/Heros2026@<commit-sha>/FSSinclair-Medium.otf`, or
-request a purge at https://www.jsdelivr.com/tools/purge.
 
 You can always override the font entirely with `?font=` if needed.
 
