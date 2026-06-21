@@ -270,6 +270,12 @@
     <div class="panel-title" id="title-donors">Top Donors</div>
     <div class="single-entry-wrap" id="entry-donors"></div>
   </div>
+
+  <!-- Panel 5: Top Teams -->
+  <div class="panel" id="panel-teams">
+    <div class="panel-title" id="title-teams">Top Teams</div>
+    <div class="single-entry-wrap" id="entry-teams"></div>
+  </div>
 </div>
 
 <script>
@@ -283,10 +289,12 @@
   //   ?bg=transparent&bar=00ff88&text=ffffff&accent=ffcc00&track=ffffff33
   //   &w=800&h=200&rotate=8&entry=5&refresh=30&maxitems=5&position=bottom
   //   &title_total=Total%20Raised&title_fundraisers=Top%20Fundraisers
-  //   &title_campaigns=Campaigns&title_donors=Top%20Donors
+  //   &title_campaigns=Campaigns&title_donors=Top%20Donors&title_teams=Top%20Teams
   //   &label_total=raised%20so%20far
   //   &api=https://hd2clans.com/api/public/heroes26
-  //   &panels=total,fundraisers,campaigns,donors
+  //   &panels=total,fundraisers,campaigns,donors,teams
+  //   &fundraisers=https://tiltify.com/@tana-sukke/helldivers-2-heroes-26-fundraiser-for-save-the-children
+  //   &team=/+2nd-liberation-battalion/profile
 
   const params = new URLSearchParams(window.location.search);
 
@@ -330,7 +338,11 @@
 
     // Filter supporting_campaigns down to just one, by campaign_url
     // (or campaign_slug, as a more forgiving fallback). e.g.
-    // ?team=https://tiltify.com/@tana-sukke/helldivers-2-heroes-26-fundraiser-for-save-the-children
+    // ?fundraisers=https://tiltify.com/@tana-sukke/helldivers-2-heroes-26-fundraiser-for-save-the-children
+    fundraiserFilter: getText('fundraisers', null),
+
+    // Filter team_leaderboard down to just one, by team url. e.g.
+    // ?team=/+2nd-liberation-battalion/profile
     teamFilter: getText('team', null),
 
     // Where the bar sits vertically in the page: 'top', 'center', or 'bottom'
@@ -343,7 +355,8 @@
       total: getText('title_total', 'Total Raised'),
       fundraisers: getText('title_fundraisers', 'Top Fundraisers'),
       campaigns: getText('title_campaigns', 'Supporting Campaigns'),
-      donors: getText('title_donors', 'Top Donors')
+      donors: getText('title_donors', 'Top Donors'),
+      teams: getText('title_teams', 'Top Teams')
     },
     totalLabel: getText('label_total', 'raised so far'),
 
@@ -379,6 +392,7 @@
   document.getElementById('title-fundraisers').textContent = CONFIG.titles.fundraisers;
   document.getElementById('title-campaigns').textContent = CONFIG.titles.campaigns;
   document.getElementById('title-donors').textContent = CONFIG.titles.donors;
+  document.getElementById('title-teams').textContent = CONFIG.titles.teams;
   document.getElementById('total-amount-label').textContent = CONFIG.totalLabel;
 
   // ----------------------------------------------------------------------
@@ -456,7 +470,8 @@
   const PANEL_DATA = {
     fundraisers: { items: [], showAvatar: true, containerId: 'entry-fundraisers' },
     campaigns: { items: [], showAvatar: true, containerId: 'entry-campaigns' },
-    donors: { items: [], showAvatar: true, containerId: 'entry-donors' }
+    donors: { items: [], showAvatar: true, containerId: 'entry-donors' },
+    teams: { items: [], showAvatar: true, containerId: 'entry-teams' }
   };
 
   function renderTotal(data) {
@@ -483,8 +498,8 @@
   function renderCampaigns(data) {
     let campaigns = data.supporting_campaigns || [];
 
-    if (CONFIG.teamFilter) {
-      const target = normalizeUrlForMatch(CONFIG.teamFilter);
+    if (CONFIG.fundraiserFilter) {
+      const target = normalizeUrlForMatch(CONFIG.fundraiserFilter);
       campaigns = campaigns.filter(c => {
         const url = normalizeUrlForMatch(c.campaign_url);
         const slug = normalizeUrlForMatch(c.campaign_slug);
@@ -511,18 +526,41 @@
     })).slice(0, CONFIG.maxItems);
   }
 
+  function renderTeams(data) {
+    let teams = data.team_leaderboard || [];
+
+    if (CONFIG.teamFilter) {
+      const target = normalizeUrlForMatch(CONFIG.teamFilter);
+      teams = teams.filter(t => {
+        const url = normalizeUrlForMatch(t.url);
+        return (url && url === target) ||
+               (url && url.endsWith('/' + target)) || // in case target is just a slug
+               (target.endsWith('/' + url) && url);   // in case target has extra path
+      });
+    }
+
+    PANEL_DATA.teams.items = teams.map(t => ({
+      primary: t.name,
+      secondary: '',
+      amount: t.amount ? t.amount.value : 0,
+      avatarSrc: t.avatar ? t.avatar.src : null
+    })).slice(0, CONFIG.maxItems);
+  }
+
   const RENDERERS = {
     total: renderTotal,
     fundraisers: renderFundraisers,
     campaigns: renderCampaigns,
-    donors: renderDonors
+    donors: renderDonors,
+    teams: renderTeams
   };
 
   const PANEL_IDS = {
     total: 'panel-total',
     fundraisers: 'panel-fundraisers',
     campaigns: 'panel-campaigns',
-    donors: 'panel-donors'
+    donors: 'panel-donors',
+    teams: 'panel-teams'
   };
 
   // ----------------------------------------------------------------------
