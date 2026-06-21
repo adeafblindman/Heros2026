@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Charity Ticker</title>
+<style>
+  :root {
+    --bg-color: transparent;
+    --bar-color: #2ecc71;
+    --bar-track-color: rgba(255,255,255,0.15);
+    --text-color: #ffffff;
+    --accent-color: #ffcc00;
+    --sub-text-color: rgba(255,255,255,0.75);
+    --font-family: 'Segoe UI', Arial, sans-serif;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-color);
+    font-family: var(--font-family);
+    color: var(--text-color);
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #ticker-root {
+    box-sizing: border-box;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px;
+  }
+
+  .panel {
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .panel.active {
+    display: flex;
+    opacity: 1;
+  }
+
+  .panel-title {
+    font-size: clamp(14px, 2.4vh, 22px);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--accent-color);
+    margin: 0 0 2px 0;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  }
+
+  /* ---------- Bar 1: Total Raised ---------- */
+  .total-amount {
+    font-size: clamp(28px, 6vh, 56px);
+    font-weight: 800;
+    line-height: 1;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  }
+
+  .total-amount .label {
+    font-size: clamp(13px, 2vh, 20px);
+    font-weight: 500;
+    color: var(--sub-text-color);
+    margin-left: 8px;
+  }
+
+  .progress-track {
+    width: 100%;
+    height: clamp(14px, 3vh, 28px);
+    background: var(--bar-track-color);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--bar-color);
+    border-radius: 999px;
+    transition: width 1s ease-out;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    box-shadow: 0 0 8px var(--bar-color);
+  }
+
+  .progress-pct {
+    font-size: clamp(11px, 1.8vh, 16px);
+    font-weight: 700;
+    color: #fff;
+    padding-right: 8px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    white-space: nowrap;
+  }
+
+  /* ---------- List-style bars (fundraisers / campaigns / donors) ---------- */
+  .list-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(4px, 1vh, 10px);
+    width: 100%;
+  }
+
+  .list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: rgba(0,0,0,0.0);
+    width: 100%;
+  }
+
+  .list-row .rank {
+    font-weight: 800;
+    color: var(--accent-color);
+    font-size: clamp(13px, 2vh, 20px);
+    min-width: 1.6em;
+    text-align: right;
+  }
+
+  .list-row .avatar {
+    width: clamp(24px, 4vh, 40px);
+    height: clamp(24px, 4vh, 40px);
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--accent-color);
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.1);
+  }
+
+  .list-row .name-block {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .list-row .primary-name {
+    font-size: clamp(14px, 2.4vh, 22px);
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+
+  .list-row .secondary-name {
+    font-size: clamp(11px, 1.7vh, 15px);
+    color: var(--sub-text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .list-row .amount {
+    font-size: clamp(15px, 2.6vh, 24px);
+    font-weight: 800;
+    color: var(--bar-color);
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+
+  /* ---------- Status / error state ---------- */
+  #status-msg {
+    font-size: clamp(12px, 1.8vh, 16px);
+    color: var(--sub-text-color);
+    text-align: center;
+  }
+
+  #status-msg.error {
+    color: #ff6b6b;
+  }
+</style>
+</head>
+<body>
+
+<div id="ticker-root">
+  <div id="status-msg">Loading…</div>
+
+  <!-- Panel 1: Total Raised -->
+  <div class="panel" id="panel-total">
+    <div class="panel-title" id="title-total">Total Raised</div>
+    <div class="total-amount">
+      <span id="total-amount-value">$0.00</span>
+      <span class="label" id="total-amount-label">raised so far</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width:0%">
+        <span class="progress-pct" id="progress-pct-text">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 2: Top Fundraisers -->
+  <div class="panel" id="panel-fundraisers">
+    <div class="panel-title" id="title-fundraisers">Top Fundraisers</div>
+    <div class="list-wrap" id="list-fundraisers"></div>
+  </div>
+
+  <!-- Panel 3: Supporting Campaigns -->
+  <div class="panel" id="panel-campaigns">
+    <div class="panel-title" id="title-campaigns">Supporting Campaigns</div>
+    <div class="list-wrap" id="list-campaigns"></div>
+  </div>
+
+  <!-- Panel 4: Top Donors -->
+  <div class="panel" id="panel-donors">
+    <div class="panel-title" id="title-donors">Top Donors</div>
+    <div class="list-wrap" id="list-donors"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ----------------------------------------------------------------------
+  // CONFIG: read from URL parameters
+  // ----------------------------------------------------------------------
+  // Example:
+  //   ?bg=transparent&bar=00ff88&text=ffffff&accent=ffcc00&track=ffffff33
+  //   &w=800&h=200&rotate=8&refresh=30&maxitems=5
+  //   &title_total=Total%20Raised&title_fundraisers=Top%20Fundraisers
+  //   &title_campaigns=Campaigns&title_donors=Top%20Donors
+  //   &label_total=raised%20so%20far
+  //   &api=https://hd2clans.com/api/public/heroes26
+  //   &panels=total,fundraisers,campaigns,donors
+
+  const params = new URLSearchParams(window.location.search);
+
+  function getColor(name, fallback) {
+    let v = params.get(name);
+    if (!v) return fallback;
+    v = v.trim();
+    // Allow passing hex without '#' since '#' needs URL-encoding otherwise
+    if (/^[0-9a-fA-F]{3,8}$/.test(v)) v = '#' + v;
+    return v;
+  }
+
+  function getText(name, fallback) {
+    const v = params.get(name);
+    return (v === null || v === '') ? fallback : v;
+  }
+
+  function getNum(name, fallback) {
+    const v = parseFloat(params.get(name));
+    return isNaN(v) ? fallback : v;
+  }
+
+  const CONFIG = {
+    bg: getColor('bg', 'transparent'),
+    barColor: getColor('bar', '#2ecc71'),
+    trackColor: getColor('track', 'rgba(255,255,255,0.15)'),
+    textColor: getColor('text', '#ffffff'),
+    accentColor: getColor('accent', '#ffcc00'),
+    subTextColor: getColor('subtext', 'rgba(255,255,255,0.75)'),
+    fontFamily: getText('font', "'Segoe UI', Arial, sans-serif"),
+
+    width: params.get('w'),   // px, optional — forces fixed widget size
+    height: params.get('h'),  // px, optional
+
+    rotateSeconds: getNum('rotate', 8),     // how long each panel is shown
+    refreshSeconds: getNum('refresh', 30),  // how often to refetch the API
+    maxItems: Math.max(1, Math.floor(getNum('maxitems', 5))),
+
+    apiUrl: getText('api', 'https://hd2clans.com/api/public/heroes26'),
+
+    titles: {
+      total: getText('title_total', 'Total Raised'),
+      fundraisers: getText('title_fundraisers', 'Top Fundraisers'),
+      campaigns: getText('title_campaigns', 'Supporting Campaigns'),
+      donors: getText('title_donors', 'Top Donors')
+    },
+    totalLabel: getText('label_total', 'raised so far'),
+
+    // Which panels to include & their order, e.g. ?panels=total,donors
+    panelOrder: getText('panels', 'total,fundraisers,campaigns,donors')
+      .split(',').map(s => s.trim()).filter(Boolean)
+  };
+
+  // ----------------------------------------------------------------------
+  // APPLY CONFIG: colors, fonts, size
+  // ----------------------------------------------------------------------
+  const root = document.documentElement;
+  root.style.setProperty('--bg-color', CONFIG.bg);
+  root.style.setProperty('--bar-color', CONFIG.barColor);
+  root.style.setProperty('--bar-track-color', CONFIG.trackColor);
+  root.style.setProperty('--text-color', CONFIG.textColor);
+  root.style.setProperty('--accent-color', CONFIG.accentColor);
+  root.style.setProperty('--sub-text-color', CONFIG.subTextColor);
+  root.style.setProperty('--font-family', CONFIG.fontFamily);
+
+  if (CONFIG.width) {
+    document.body.style.width = CONFIG.width + 'px';
+    document.getElementById('ticker-root').style.width = CONFIG.width + 'px';
+  }
+  if (CONFIG.height) {
+    document.body.style.height = CONFIG.height + 'px';
+    document.getElementById('ticker-root').style.height = CONFIG.height + 'px';
+  }
+
+  document.getElementById('title-total').textContent = CONFIG.titles.total;
+  document.getElementById('title-fundraisers').textContent = CONFIG.titles.fundraisers;
+  document.getElementById('title-campaigns').textContent = CONFIG.titles.campaigns;
+  document.getElementById('title-donors').textContent = CONFIG.titles.donors;
+  document.getElementById('total-amount-label').textContent = CONFIG.totalLabel;
+
+  // ----------------------------------------------------------------------
+  // HELPERS
+  // ----------------------------------------------------------------------
+  function formatCurrency(value) {
+    const num = parseFloat(value);
+    if (isNaN(num)) return '$0';
+    return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  const FALLBACK_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+    '<rect width="100" height="100" fill="#888"/>' +
+    '<circle cx="50" cy="38" r="20" fill="#ccc"/>' +
+    '<rect x="20" y="62" width="60" height="30" rx="15" fill="#ccc"/>' +
+    '</svg>'
+  );
+
+  function buildListRows(container, items, opts) {
+    container.innerHTML = '';
+    items.slice(0, CONFIG.maxItems).forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'list-row';
+
+      let avatarHtml = '';
+      if (opts.showAvatar) {
+        avatarHtml = `<img class="avatar" src="${escapeHtml(item.avatarSrc || FALLBACK_AVATAR)}" alt=""
+          onerror="this.onerror=null;this.src='${FALLBACK_AVATAR}'">`;
+      }
+
+      row.innerHTML = `
+        <span class="rank">${idx + 1}.</span>
+        ${avatarHtml}
+        <span class="name-block">
+          <span class="primary-name">${escapeHtml(item.primary)}</span>
+          ${item.secondary ? `<span class="secondary-name">${escapeHtml(item.secondary)}</span>` : ''}
+        </span>
+        <span class="amount">${formatCurrency(item.amount)}</span>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  // ----------------------------------------------------------------------
+  // RENDER FUNCTIONS PER PANEL
+  // ----------------------------------------------------------------------
+  function renderTotal(data) {
+    const raised = data.total_raised != null ? data.total_raised : 0;
+    const pct = data.pct != null ? data.pct : 0;
+    document.getElementById('total-amount-value').textContent = formatCurrency(raised);
+    const fill = document.getElementById('progress-fill');
+    const pctClamped = Math.max(0, Math.min(100, pct));
+    fill.style.width = pctClamped + '%';
+    document.getElementById('progress-pct-text').textContent = pct.toFixed
+      ? pct.toFixed(1) + '%'
+      : pct + '%';
+  }
+
+  function renderFundraisers(data) {
+    const items = (data.fundraisers || []).map(f => ({
+      primary: f.name,
+      secondary: '',
+      amount: f.amount ? f.amount.value : 0,
+      avatarSrc: f.avatar ? f.avatar.src : null
+    }));
+    buildListRows(document.getElementById('list-fundraisers'), items, { showAvatar: true });
+  }
+
+  function renderCampaigns(data) {
+    const items = (data.supporting_campaigns || []).map(c => ({
+      primary: c.campaign_name || c.v || 'Campaign',
+      secondary: c.user_name ? ('by ' + c.user_name) : '',
+      amount: c.amount_raised || 0,
+      avatarSrc: c.user_avatar_url || null
+    }));
+    buildListRows(document.getElementById('list-campaigns'), items, { showAvatar: true });
+  }
+
+  function renderDonors(data) {
+    const items = (data.top_donors || []).map(d => ({
+      primary: d.name,
+      secondary: '',
+      amount: d.amount ? d.amount.value : 0,
+      avatarSrc: null
+    }));
+    buildListRows(document.getElementById('list-donors'), items, { showAvatar: false });
+  }
+
+  const RENDERERS = {
+    total: renderTotal,
+    fundraisers: renderFundraisers,
+    campaigns: renderCampaigns,
+    donors: renderDonors
+  };
+
+  const PANEL_IDS = {
+    total: 'panel-total',
+    fundraisers: 'panel-fundraisers',
+    campaigns: 'panel-campaigns',
+    donors: 'panel-donors'
+  };
+
+  // ----------------------------------------------------------------------
+  // ROTATION
+  // ----------------------------------------------------------------------
+  let activePanels = CONFIG.panelOrder.filter(p => PANEL_IDS[p]);
+  if (activePanels.length === 0) activePanels = ['total', 'fundraisers', 'campaigns', 'donors'];
+
+  let currentIndex = 0;
+  let rotateTimer = null;
+
+  function showPanel(index) {
+    Object.values(PANEL_IDS).forEach(id => {
+      document.getElementById(id).classList.remove('active');
+    });
+    const key = activePanels[index];
+    const el = document.getElementById(PANEL_IDS[key]);
+    if (el) el.classList.add('active');
+  }
+
+  function startRotation() {
+    if (rotateTimer) clearInterval(rotateTimer);
+    showPanel(currentIndex);
+    rotateTimer = setInterval(() => {
+      currentIndex = (currentIndex + 1) % activePanels.length;
+      showPanel(currentIndex);
+    }, CONFIG.rotateSeconds * 1000);
+  }
+
+  // ----------------------------------------------------------------------
+  // DATA FETCHING
+  // ----------------------------------------------------------------------
+  let hasLoadedOnce = false;
+
+  async function fetchData() {
+    try {
+      const res = await fetch(CONFIG.apiUrl, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+
+      activePanels.forEach(key => {
+        if (RENDERERS[key]) RENDERERS[key](data);
+      });
+
+      const statusEl = document.getElementById('status-msg');
+      if (statusEl) statusEl.remove();
+
+      if (!hasLoadedOnce) {
+        hasLoadedOnce = true;
+        startRotation();
+      }
+    } catch (err) {
+      console.error('Charity ticker fetch failed:', err);
+      if (!hasLoadedOnce) {
+        const statusEl = document.getElementById('status-msg');
+        if (statusEl) {
+          statusEl.textContent = 'Unable to load data (' + err.message + '). Check console / CORS.';
+          statusEl.classList.add('error');
+        }
+      }
+      // If it already loaded once successfully, just keep showing stale data
+      // and silently retry on the next refresh cycle.
+    }
+  }
+
+  fetchData();
+  setInterval(fetchData, Math.max(5, CONFIG.refreshSeconds) * 1000);
+
+})();
+</script>
+
+</body>
+</html>
