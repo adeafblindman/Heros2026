@@ -2,6 +2,9 @@
 
 A self-contained, single-file ticker widget for `hd2clans.com/api/public/heroes26`.
 Rotates between 4 panels: Total Raised, Top Fundraisers, Supporting Campaigns, Top Donors.
+For the three list-style panels, entries display one at a time on a single line
+(rank, avatar, name, amount) and cycle through automatically before moving on
+to the next panel.
 
 ## Setup
 
@@ -39,9 +42,10 @@ Usually easiest to just leave these unset and size the OBS Browser Source itself
 ### Behavior
 | Param | Default | Description |
 |---|---|---|
-| `rotate` | `8` | Seconds each panel is shown before advancing |
+| `rotate` | `8` | Seconds the **Total Raised** panel is shown before advancing (this panel has no sub-items to step through) |
+| `entry` | `5` | Seconds each individual entry is shown within a list panel (fundraisers/campaigns/donors), before stepping to the next entry. After the last entry, it moves straight to the next panel — no looping back. |
 | `refresh` | `30` | Seconds between re-fetching the API |
-| `maxitems` | `5` | Max rows shown in list panels (fundraisers/campaigns/donors) |
+| `maxitems` | `5` | Max entries cycled through per list panel (fundraisers/campaigns/donors) |
 | `panels` | `total,fundraisers,campaigns,donors` | Comma list — which panels to show & in what order. E.g. `panels=total,donors` shows only those two, alternating. |
 | `api` | `https://hd2clans.com/api/public/heroes26` | Override the data source URL |
 

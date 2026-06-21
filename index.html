@@ -107,34 +107,39 @@
     white-space: nowrap;
   }
 
-  /* ---------- List-style bars (fundraisers / campaigns / donors) ---------- */
-  .list-wrap {
+  /* ---------- Single-entry display (fundraisers / campaigns / donors) ---------- */
+  .single-entry-wrap {
+    width: 100%;
     display: flex;
     flex-direction: column;
-    gap: clamp(4px, 1vh, 10px);
-    width: 100%;
+    gap: clamp(6px, 1.4vh, 14px);
   }
 
-  .list-row {
+  .single-entry {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    background: rgba(0,0,0,0.0);
+    gap: 14px;
     width: 100%;
+    opacity: 1;
+    transition: opacity 0.35s ease;
   }
 
-  .list-row .rank {
+  .single-entry.swapping {
+    opacity: 0;
+  }
+
+  .single-entry .rank {
     font-weight: 800;
     color: var(--accent-color);
-    font-size: clamp(13px, 2vh, 20px);
-    min-width: 1.6em;
+    font-size: clamp(16px, 3vh, 26px);
+    min-width: 1.4em;
     text-align: right;
+    flex-shrink: 0;
   }
 
-  .list-row .avatar {
-    width: clamp(24px, 4vh, 40px);
-    height: clamp(24px, 4vh, 40px);
+  .single-entry .avatar {
+    width: clamp(32px, 6vh, 56px);
+    height: clamp(32px, 6vh, 56px);
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--accent-color);
@@ -142,7 +147,7 @@
     background: rgba(255,255,255,0.1);
   }
 
-  .list-row .name-block {
+  .single-entry .name-block {
     flex: 1;
     min-width: 0;
     display: flex;
@@ -151,8 +156,8 @@
     overflow: hidden;
   }
 
-  .list-row .primary-name {
-    font-size: clamp(14px, 2.4vh, 22px);
+  .single-entry .primary-name {
+    font-size: clamp(16px, 3vh, 28px);
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
@@ -160,21 +165,40 @@
     text-shadow: 0 1px 2px rgba(0,0,0,0.5);
   }
 
-  .list-row .secondary-name {
-    font-size: clamp(11px, 1.7vh, 15px);
+  .single-entry .secondary-name {
+    font-size: clamp(12px, 2vh, 17px);
     color: var(--sub-text-color);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .list-row .amount {
-    font-size: clamp(15px, 2.6vh, 24px);
+  .single-entry .amount {
+    font-size: clamp(18px, 3.4vh, 30px);
     font-weight: 800;
     color: var(--bar-color);
     white-space: nowrap;
     text-shadow: 0 1px 2px rgba(0,0,0,0.5);
     flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  .entry-dots {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .entry-dots .dot {
+    width: clamp(5px, 0.9vh, 8px);
+    height: clamp(5px, 0.9vh, 8px);
+    border-radius: 50%;
+    background: var(--bar-track-color);
+    transition: background 0.3s ease;
+  }
+
+  .entry-dots .dot.active {
+    background: var(--accent-color);
   }
 
   /* ---------- Status / error state ---------- */
@@ -211,19 +235,19 @@
   <!-- Panel 2: Top Fundraisers -->
   <div class="panel" id="panel-fundraisers">
     <div class="panel-title" id="title-fundraisers">Top Fundraisers</div>
-    <div class="list-wrap" id="list-fundraisers"></div>
+    <div class="single-entry-wrap" id="entry-fundraisers"></div>
   </div>
 
   <!-- Panel 3: Supporting Campaigns -->
   <div class="panel" id="panel-campaigns">
     <div class="panel-title" id="title-campaigns">Supporting Campaigns</div>
-    <div class="list-wrap" id="list-campaigns"></div>
+    <div class="single-entry-wrap" id="entry-campaigns"></div>
   </div>
 
   <!-- Panel 4: Top Donors -->
   <div class="panel" id="panel-donors">
     <div class="panel-title" id="title-donors">Top Donors</div>
-    <div class="list-wrap" id="list-donors"></div>
+    <div class="single-entry-wrap" id="entry-donors"></div>
   </div>
 </div>
 
@@ -276,7 +300,8 @@
     width: params.get('w'),   // px, optional — forces fixed widget size
     height: params.get('h'),  // px, optional
 
-    rotateSeconds: getNum('rotate', 8),     // how long each panel is shown
+    rotateSeconds: getNum('rotate', 8),     // dwell time for non-list panels (e.g. total raised)
+    entrySeconds: getNum('entry', 5),       // dwell time per entry within list panels
     refreshSeconds: getNum('refresh', 30),  // how often to refetch the API
     maxItems: Math.max(1, Math.floor(getNum('maxitems', 5))),
 
@@ -345,19 +370,26 @@
     '</svg>'
   );
 
-  function buildListRows(container, items, opts) {
-    container.innerHTML = '';
-    items.slice(0, CONFIG.maxItems).forEach((item, idx) => {
-      const row = document.createElement('div');
-      row.className = 'list-row';
+  function renderSingleEntry(container, items, idx, opts) {
+    if (!items.length) {
+      container.innerHTML = '';
+      return;
+    }
+    const item = items[idx % items.length];
 
-      let avatarHtml = '';
-      if (opts.showAvatar) {
-        avatarHtml = `<img class="avatar" src="${escapeHtml(item.avatarSrc || FALLBACK_AVATAR)}" alt=""
-          onerror="this.onerror=null;this.src='${FALLBACK_AVATAR}'">`;
-      }
+    let avatarHtml = '';
+    if (opts.showAvatar) {
+      avatarHtml = `<img class="avatar" src="${escapeHtml(item.avatarSrc || FALLBACK_AVATAR)}" alt=""
+        onerror="this.onerror=null;this.src='${FALLBACK_AVATAR}'">`;
+    }
 
-      row.innerHTML = `
+    const dotsHtml = items.length > 1
+      ? `<div class="entry-dots">${items.slice(0, CONFIG.maxItems).map((_, i) =>
+          `<span class="dot${i === idx ? ' active' : ''}"></span>`).join('')}</div>`
+      : '';
+
+    container.innerHTML = `
+      <div class="single-entry" id="${container.id}-entry">
         <span class="rank">${idx + 1}.</span>
         ${avatarHtml}
         <span class="name-block">
@@ -365,14 +397,22 @@
           ${item.secondary ? `<span class="secondary-name">${escapeHtml(item.secondary)}</span>` : ''}
         </span>
         <span class="amount">${formatCurrency(item.amount)}</span>
-      `;
-      container.appendChild(row);
-    });
+      </div>
+      ${dotsHtml}
+    `;
   }
 
   // ----------------------------------------------------------------------
   // RENDER FUNCTIONS PER PANEL
   // ----------------------------------------------------------------------
+  // Holds the latest items array for each list-type panel, plus which
+  // entry index is currently displayed.
+  const PANEL_DATA = {
+    fundraisers: { items: [], showAvatar: true, containerId: 'entry-fundraisers' },
+    campaigns: { items: [], showAvatar: true, containerId: 'entry-campaigns' },
+    donors: { items: [], showAvatar: true, containerId: 'entry-donors' }
+  };
+
   function renderTotal(data) {
     const raised = data.total_raised != null ? data.total_raised : 0;
     const pct = data.pct != null ? data.pct : 0;
@@ -386,33 +426,30 @@
   }
 
   function renderFundraisers(data) {
-    const items = (data.fundraisers || []).map(f => ({
+    PANEL_DATA.fundraisers.items = (data.fundraisers || []).map(f => ({
       primary: f.name,
       secondary: '',
       amount: f.amount ? f.amount.value : 0,
       avatarSrc: f.avatar ? f.avatar.src : null
-    }));
-    buildListRows(document.getElementById('list-fundraisers'), items, { showAvatar: true });
+    })).slice(0, CONFIG.maxItems);
   }
 
   function renderCampaigns(data) {
-    const items = (data.supporting_campaigns || []).map(c => ({
+    PANEL_DATA.campaigns.items = (data.supporting_campaigns || []).map(c => ({
       primary: c.campaign_name || c.v || 'Campaign',
       secondary: c.user_name ? ('by ' + c.user_name) : '',
       amount: c.amount_raised || 0,
       avatarSrc: c.user_avatar_url || null
-    }));
-    buildListRows(document.getElementById('list-campaigns'), items, { showAvatar: true });
+    })).slice(0, CONFIG.maxItems);
   }
 
   function renderDonors(data) {
-    const items = (data.top_donors || []).map(d => ({
+    PANEL_DATA.donors.items = (data.top_donors || []).map(d => ({
       primary: d.name,
       secondary: '',
       amount: d.amount ? d.amount.value : 0,
-      avatarSrc: null
-    }));
-    buildListRows(document.getElementById('list-donors'), items, { showAvatar: false });
+      avatarSrc: d.avatar ? d.avatar.src : null
+    })).slice(0, CONFIG.maxItems);
   }
 
   const RENDERERS = {
@@ -435,25 +472,87 @@
   let activePanels = CONFIG.panelOrder.filter(p => PANEL_IDS[p]);
   if (activePanels.length === 0) activePanels = ['total', 'fundraisers', 'campaigns', 'donors'];
 
-  let currentIndex = 0;
-  let rotateTimer = null;
+  let currentPanelIndex = 0;
+  let currentEntryIndex = 0;
+  let stepTimer = null;
 
-  function showPanel(index) {
+  function showPanel(panelKey) {
     Object.values(PANEL_IDS).forEach(id => {
       document.getElementById(id).classList.remove('active');
     });
-    const key = activePanels[index];
-    const el = document.getElementById(PANEL_IDS[key]);
+    const el = document.getElementById(PANEL_IDS[panelKey]);
     if (el) el.classList.add('active');
   }
 
+  // Draws the current entry for a list-type panel (fundraisers/campaigns/donors).
+  function drawCurrentEntry(panelKey) {
+    const pdata = PANEL_DATA[panelKey];
+    if (!pdata) return;
+    const container = document.getElementById(pdata.containerId);
+    if (!container) return;
+    renderSingleEntry(container, pdata.items, currentEntryIndex, { showAvatar: pdata.showAvatar });
+  }
+
+  // Advances the ticker by one "step" — either the next entry within the
+  // current list panel, or the next panel entirely.
+  function advanceStep() {
+    const panelKey = activePanels[currentPanelIndex];
+    const pdata = PANEL_DATA[panelKey];
+    const isListPanel = !!pdata;
+
+    if (isListPanel && pdata.items.length > 1 && currentEntryIndex < pdata.items.length - 1) {
+      // More entries left in this panel — show the next one.
+      currentEntryIndex++;
+      drawCurrentEntry(panelKey);
+      scheduleNextStep(CONFIG.entrySeconds);
+      return;
+    }
+
+    // Either a non-list panel (e.g. total) or we've shown the last entry —
+    // move on to the next panel.
+    currentPanelIndex = (currentPanelIndex + 1) % activePanels.length;
+    currentEntryIndex = 0;
+    enterPanel(currentPanelIndex);
+  }
+
+  function enterPanel(index) {
+    const panelKey = activePanels[index];
+    showPanel(panelKey);
+
+    const pdata = PANEL_DATA[panelKey];
+    if (pdata) {
+      currentEntryIndex = 0;
+      drawCurrentEntry(panelKey);
+      // If a list panel has no items at all, don't get stuck — move on
+      // after the normal dwell time anyway.
+      scheduleNextStep(CONFIG.entrySeconds);
+    } else {
+      // Simple panel (total raised) — dwell for the full panel duration.
+      scheduleNextStep(CONFIG.rotateSeconds);
+    }
+  }
+
+  function scheduleNextStep(seconds) {
+    if (stepTimer) clearTimeout(stepTimer);
+    stepTimer = setTimeout(advanceStep, Math.max(1, seconds) * 1000);
+  }
+
   function startRotation() {
-    if (rotateTimer) clearInterval(rotateTimer);
-    showPanel(currentIndex);
-    rotateTimer = setInterval(() => {
-      currentIndex = (currentIndex + 1) % activePanels.length;
-      showPanel(currentIndex);
-    }, CONFIG.rotateSeconds * 1000);
+    currentPanelIndex = 0;
+    currentEntryIndex = 0;
+    enterPanel(currentPanelIndex);
+  }
+
+  // Re-renders whatever is currently on screen after a fresh data fetch,
+  // without resetting position/timers (keeps the ticker feeling continuous).
+  function refreshCurrentView() {
+    const panelKey = activePanels[currentPanelIndex];
+    const pdata = PANEL_DATA[panelKey];
+    if (pdata) {
+      // Clamp entry index in case the new data has fewer items.
+      if (currentEntryIndex >= pdata.items.length) currentEntryIndex = 0;
+      drawCurrentEntry(panelKey);
+    }
   }
 
   // ----------------------------------------------------------------------
@@ -481,6 +580,8 @@
       if (!hasLoadedOnce) {
         hasLoadedOnce = true;
         startRotation();
+      } else {
+        refreshCurrentView();
       }
     } catch (err) {
       console.error('Charity ticker fetch failed:', err);
