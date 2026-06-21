@@ -465,7 +465,11 @@
     try {
       const res = await fetch(CONFIG.apiUrl, { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
+      const raw = await res.json();
+      // The live API nests all the actual fields under "tiltify".
+      // Fall back to the raw payload itself in case the shape ever
+      // changes back to a flat structure.
+      const data = (raw && raw.tiltify) ? raw.tiltify : raw;
 
       activePanels.forEach(key => {
         if (RENDERERS[key]) RENDERERS[key](data);
