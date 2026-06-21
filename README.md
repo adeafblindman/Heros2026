@@ -8,7 +8,6 @@ to the next panel.
 
 ## Setup
 
-
 1. In OBS: **Sources → Add → Browser Source**, paste the URL (with any params you want, see below),
    set width/height to match your scene, check **"Shutdown source when not visible"** off,
    and you're done — background is transparent by default.
@@ -55,6 +54,7 @@ to sit flush along one edge of the canvas instead of vertically centered.
 | `maxitems` | `5` | Max entries cycled through per list panel (fundraisers/campaigns/donors) |
 | `panels` | `total,fundraisers,campaigns,donors` | Comma list — which panels to show & in what order. E.g. `panels=total,donors` shows only those two, alternating. |
 | `api` | `https://hd2clans.com/api/public/heroes26` | Override the data source URL |
+| `team` | (none — shows all campaigns) | Filter **Supporting Campaigns** down to a single campaign, matched against that campaign's `campaign_url` or `campaign_slug`. Accepts either the full URL or just the slug. |
 
 ### Text overrides
 | Param | Default |
@@ -87,6 +87,22 @@ Only show the total + top donors, custom title, centered vertically:
 https://adeafblindman.github.io/Heros2026/?panels=total,donors&title_total=Save%20the%20Children%20Goal&position=center
 ```
 
+Show only one specific campaign in the Supporting Campaigns panel (e.g. for a streamer who
+only wants their own team's campaign on screen, not the whole event):
+```
+https://adeafblindman.github.io/Heros2026/?team=https://tiltify.com/@tana-sukke/helldivers-2-heroes-26-fundraiser-for-save-the-children
+```
+Since only one campaign will match, that panel will just show it on a loop without cycling
+through others.
+
+## Notes on CORS
+
+This widget fetches the API directly from the browser. If `hd2clans.com` does not send
+`Access-Control-Allow-Origin` headers permitting your GitHub Pages origin, the fetch will
+fail silently in the browser console (you'll see a "Unable to load data" message on first
+load). If that happens, you'll need a small proxy (e.g. a Cloudflare Worker or similar) to
+re-serve the JSON with permissive CORS headers, and point `?api=` at that instead.
+
 ## Custom font
 
 By default the ticker loads **FS Sinclair** from jsDelivr's GitHub CDN mirror:
@@ -98,6 +114,12 @@ raw file host (`github.com/.../raw/...`) because GitHub serves an empty
 `Access-Control-Allow-Origin` header on raw files, which browsers treat as a hard CORS
 block — the font would silently fail to load. jsDelivr mirrors public GitHub repos and adds
 proper CORS headers, so it works.
+
+If you update `FSSinclair-Medium.otf` in the repo, jsDelivr may keep serving a cached old
+version for a while (their CDN caches by branch/tag). To force the new version sooner, you
+can pin a specific commit hash instead of `@main`, e.g.
+`https://cdn.jsdelivr.net/gh/adeafblindman/Heros2026@<commit-sha>/FSSinclair-Medium.otf`, or
+request a purge at https://www.jsdelivr.com/tools/purge.
 
 You can always override the font entirely with `?font=` if needed.
 

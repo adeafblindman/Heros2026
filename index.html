@@ -328,6 +328,11 @@
 
     apiUrl: getText('api', 'https://hd2clans.com/api/public/heroes26'),
 
+    // Filter supporting_campaigns down to just one, by campaign_url
+    // (or campaign_slug, as a more forgiving fallback). e.g.
+    // ?team=https://tiltify.com/@tana-sukke/helldivers-2-heroes-26-fundraiser-for-save-the-children
+    teamFilter: getText('team', null),
+
     // Where the bar sits vertically in the page: 'top', 'center', or 'bottom'
     position: (() => {
       const v = (getText('position', 'bottom') || 'bottom').toLowerCase();
@@ -389,6 +394,18 @@
     const div = document.createElement('div');
     div.textContent = str == null ? '' : String(str);
     return div.innerHTML;
+  }
+
+  // Normalizes a URL/slug for loose comparison: lowercases, strips protocol,
+  // strips trailing slash, strips query/hash.
+  function normalizeUrlForMatch(str) {
+    if (!str) return '';
+    return String(str)
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/[?#].*$/, '')
+      .replace(/\/+$/, '');
   }
 
   const FALLBACK_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -464,7 +481,20 @@
   }
 
   function renderCampaigns(data) {
-    PANEL_DATA.campaigns.items = (data.supporting_campaigns || []).map(c => ({
+    let campaigns = data.supporting_campaigns || [];
+
+    if (CONFIG.teamFilter) {
+      const target = normalizeUrlForMatch(CONFIG.teamFilter);
+      campaigns = campaigns.filter(c => {
+        const url = normalizeUrlForMatch(c.campaign_url);
+        const slug = normalizeUrlForMatch(c.campaign_slug);
+        return (url && url === target) || (slug && slug === target) ||
+               (url && url.endsWith('/' + target)) || // in case target is just a slug
+               (target.endsWith('/' + slug) && slug); // in case target has extra path
+      });
+    }
+
+    PANEL_DATA.campaigns.items = campaigns.map(c => ({
       primary: c.campaign_name || c.v || 'Campaign',
       secondary: c.user_name ? ('by ' + c.user_name) : '',
       amount: c.amount_raised || 0,
