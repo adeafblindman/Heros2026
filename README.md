@@ -54,7 +54,7 @@ to sit flush along one edge of the canvas instead of vertically centered.
 | `maxitems` | `5` | Max entries cycled through per list panel (fundraisers/campaigns/donors/teams) |
 | `panels` | `total,fundraisers,campaigns,donors` | Comma list — which panels to show & in what order. E.g. `panels=total,donors` shows only those two, alternating. **Top Teams is not shown by default** — add `teams` to this list if you want it (e.g. `panels=total,fundraisers,campaigns,donors,teams`). |
 | `api` | `https://hd2clans.com/api/public/heroes26` | Override the data source URL |
-| `fundraisers` | (none — shows all campaigns) | Filter **Supporting Campaigns** down to a single campaign, matched against that campaign's `campaign_url` or `campaign_slug`. Accepts either the full URL or just the slug. *(Renamed from `team` — see below.)* |
+| `fundraisers` | (none — shows all campaigns) | Filter **Supporting Campaigns** down to a single campaign, matched against that campaign's `campaign_url` (recommended) or, as a fallback, an *exact* match on `campaign_slug`. **Use the full campaign URL where possible** — `campaign_slug` is not guaranteed unique (multiple campaigns can share the same auto-generated default slug), so slug-only matching can be ambiguous. *(Renamed from `team` — see below.)* |
 | `team` | (none — shows all teams) | Filter **Top Teams** down to a single team, matched against that team's `url` from `team_leaderboard`. Accepts either the full URL or just the relative path (e.g. `/+2nd-liberation-battalion/profile`). |
 
 > ⚠️ **Heads up on `+` characters:** some team/campaign URLs and slugs contain a literal `+`

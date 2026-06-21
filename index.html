@@ -506,10 +506,13 @@
       campaigns = campaigns.filter(c => {
         const url = normalizeUrlForMatch(c.campaign_url);
         const slug = normalizeUrlForMatch(c.campaign_slug);
+        // NOTE: campaign_slug is NOT reliably unique across campaigns (many
+        // share an auto-generated default slug), so it's only safe to use
+        // for an exact match, never as a "target ends with this slug"
+        // suffix check — that would match every campaign sharing the slug.
         return (url && url === target) || (slug && slug === target) ||
-               (url && url.endsWith('/' + target)) ||   // in case target is just a slug
-               (target.endsWith('/' + slug) && slug) ||  // in case target has extra path (vs slug)
-               (target.endsWith('/' + url) && url);      // in case target has extra path (vs url)
+               (url && url.endsWith('/' + target)) || // in case target is just a slug
+               (target.endsWith('/' + url) && url);   // in case target has extra path
       });
     }
 
