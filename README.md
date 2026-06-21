@@ -29,7 +29,12 @@ Pass hex without `#` (since `#` needs URL-encoding) — `bar=00ff88` works, `#00
 | `text` | `#ffffff` | Main text color |
 | `accent` | `#ffcc00` | Panel titles, rank numbers, avatar border |
 | `subtext` | `rgba(255,255,255,0.75)` | Secondary/smaller text |
-| `font` | `'Segoe UI', Arial, sans-serif` | Font family |
+| `font` | `'FSSinclair', 'Segoe UI', Arial, sans-serif` | Font family. The default loads a custom font (FS Sinclair) directly from a GitHub-hosted `.otf` file via `@font-face`; override this if you want a different font instead. |
+
+### Position
+| Param | Default | Description |
+|---|---|---|
+| `position` | `bottom` | Where the ticker bar sits vertically on the page: `top`, `center`, or `bottom`. Any other value falls back to `bottom`. |
 
 ### Size
 | Param | Default | Description |
@@ -38,6 +43,9 @@ Pass hex without `#` (since `#` needs URL-encoding) — `bar=00ff88` works, `#00
 | `h` | (auto, fills browser source) | Force fixed pixel height |
 
 Usually easiest to just leave these unset and size the OBS Browser Source itself.
+With `position`, the bar will hug the top/center/bottom edge of whatever box
+(browser source or window) it's given — handy for OBS if you want the ticker
+to sit flush along one edge of the canvas instead of vertically centered.
 
 ### Behavior
 | Param | Default | Description |
@@ -60,9 +68,14 @@ Usually easiest to just leave these unset and size the OBS Browser Source itself
 
 ## Examples
 
-Default look, rotates every 8s:
+Default look, rotates every 8s, bar pinned to the bottom:
 ```
 https://you.github.io/charity-ticker/
+```
+
+Bar pinned to the top instead:
+```
+https://you.github.io/charity-ticker/?position=top
 ```
 
 Custom brand colors, 10s rotation, top 3 only, fixed 900x180 box for OBS:
@@ -70,9 +83,9 @@ Custom brand colors, 10s rotation, top 3 only, fixed 900x180 box for OBS:
 https://you.github.io/charity-ticker/?bar=ff4444&accent=ffd700&rotate=10&maxitems=3&w=900&h=180
 ```
 
-Only show the total + top donors, custom title:
+Only show the total + top donors, custom title, centered vertically:
 ```
-https://you.github.io/charity-ticker/?panels=total,donors&title_total=Save%20the%20Children%20Goal
+https://you.github.io/charity-ticker/?panels=total,donors&title_total=Save%20the%20Children%20Goal&position=center
 ```
 
 ## Notes on CORS
@@ -82,6 +95,18 @@ This widget fetches the API directly from the browser. If `hd2clans.com` does no
 fail silently in the browser console (you'll see a "Unable to load data" message on first
 load). If that happens, you'll need a small proxy (e.g. a Cloudflare Worker or similar) to
 re-serve the JSON with permissive CORS headers, and point `?api=` at that instead.
+
+## Custom font
+
+By default the ticker loads **FS Sinclair** directly from:
+```
+https://github.com/adeafblindman/Heros2026/raw/refs/heads/main/FSSinclair-Medium.otf
+```
+via `@font-face` in the page's `<style>` block. `raw.githubusercontent.com`/GitHub's raw
+file host generally serves permissive CORS headers for font files, so this should load
+fine cross-origin. If it ever doesn't render (falls back to the default sans-serif), check
+the browser console for a font-loading error — most likely cause is the file path/branch
+changing in that repo. You can always override the font entirely with `?font=`.
 
 ## Data field mapping
 

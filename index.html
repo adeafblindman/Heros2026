@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Charity Ticker</title>
 <style>
+  @font-face {
+    font-family: 'FSSinclair';
+    src: url('https://github.com/adeafblindman/Heros2026/raw/refs/heads/main/FSSinclair-Medium.otf') format('opentype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+  }
+
   :root {
     --bg-color: transparent;
     --bar-color: #2ecc71;
@@ -12,7 +20,7 @@
     --text-color: #ffffff;
     --accent-color: #ffcc00;
     --sub-text-color: rgba(255,255,255,0.75);
-    --font-family: 'Segoe UI', Arial, sans-serif;
+    --font-family: 'FSSinclair', 'Segoe UI', Arial, sans-serif;
   }
 
   html, body {
@@ -31,9 +39,21 @@
     width: 100vw;
     height: 100vh;
     display: flex;
-    align-items: center;
+    align-items: flex-end; /* default: bar sits at the bottom */
     justify-content: center;
     padding: 12px 20px;
+  }
+
+  #ticker-root.pos-top {
+    align-items: flex-start;
+  }
+
+  #ticker-root.pos-center {
+    align-items: center;
+  }
+
+  #ticker-root.pos-bottom {
+    align-items: flex-end;
   }
 
   .panel {
@@ -260,7 +280,7 @@
   // ----------------------------------------------------------------------
   // Example:
   //   ?bg=transparent&bar=00ff88&text=ffffff&accent=ffcc00&track=ffffff33
-  //   &w=800&h=200&rotate=8&refresh=30&maxitems=5
+  //   &w=800&h=200&rotate=8&entry=5&refresh=30&maxitems=5&position=bottom
   //   &title_total=Total%20Raised&title_fundraisers=Top%20Fundraisers
   //   &title_campaigns=Campaigns&title_donors=Top%20Donors
   //   &label_total=raised%20so%20far
@@ -295,7 +315,7 @@
     textColor: getColor('text', '#ffffff'),
     accentColor: getColor('accent', '#ffcc00'),
     subTextColor: getColor('subtext', 'rgba(255,255,255,0.75)'),
-    fontFamily: getText('font', "'Segoe UI', Arial, sans-serif"),
+    fontFamily: getText('font', "'FSSinclair', 'Segoe UI', Arial, sans-serif"),
 
     width: params.get('w'),   // px, optional — forces fixed widget size
     height: params.get('h'),  // px, optional
@@ -306,6 +326,12 @@
     maxItems: Math.max(1, Math.floor(getNum('maxitems', 5))),
 
     apiUrl: getText('api', 'https://hd2clans.com/api/public/heroes26'),
+
+    // Where the bar sits vertically in the page: 'top', 'center', or 'bottom'
+    position: (() => {
+      const v = (getText('position', 'bottom') || 'bottom').toLowerCase();
+      return ['top', 'center', 'bottom'].includes(v) ? v : 'bottom';
+    })(),
 
     titles: {
       total: getText('title_total', 'Total Raised'),
@@ -331,6 +357,8 @@
   root.style.setProperty('--accent-color', CONFIG.accentColor);
   root.style.setProperty('--sub-text-color', CONFIG.subTextColor);
   root.style.setProperty('--font-family', CONFIG.fontFamily);
+
+  document.getElementById('ticker-root').classList.add('pos-' + CONFIG.position);
 
   if (CONFIG.width) {
     document.body.style.width = CONFIG.width + 'px';
