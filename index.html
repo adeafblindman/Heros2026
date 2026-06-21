@@ -342,7 +342,9 @@
     fundraiserFilter: getText('fundraisers', null),
 
     // Filter team_leaderboard down to just one, by team url. e.g.
-    // ?team=/+2nd-liberation-battalion/profile
+    // ?team=/%2B2nd-liberation-battalion/profile
+    // NOTE: if the team's url/slug contains a "+", it MUST be percent-encoded
+    // as %2B in the query string, otherwise browsers turn "+" into a space.
     teamFilter: getText('team', null),
 
     // Where the bar sits vertically in the page: 'top', 'center', or 'bottom'
@@ -419,7 +421,8 @@
       .toLowerCase()
       .replace(/^https?:\/\//, '')
       .replace(/[?#].*$/, '')
-      .replace(/\/+$/, '');
+      .replace(/\/+$/, '')
+      .replace(/^\/+/, '');
   }
 
   const FALLBACK_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
