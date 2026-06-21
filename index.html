@@ -567,8 +567,13 @@
       return;
     }
 
-    // Either a non-list panel (e.g. total) or we've shown the last entry —
-    // move on to the next panel.
+    // Nothing to advance to: only one panel is active, and it has at most
+    // one entry (or it's a non-list panel) — just stay put, no more timers.
+    if (activePanels.length <= 1) {
+      return;
+    }
+
+    // Otherwise move on to the next panel.
     currentPanelIndex = (currentPanelIndex + 1) % activePanels.length;
     currentEntryIndex = 0;
     enterPanel(currentPanelIndex);
